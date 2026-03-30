@@ -5,6 +5,20 @@ import requests
 from bs4 import BeautifulSoup
 import unicodedata
 
+# Injeta CSS customizado
+st.markdown("""
+<style>
+/* Badge roxo customizado */
+.bg-purple-700 {
+    background-color: #6f42c1 !important;  /* cor roxa */
+    color: white !important;               /* texto branco */
+    padding: 0.25em 0.5em;
+    border-radius: 0.25rem;
+    font-weight: bold;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Configuração da página
 st.set_page_config(layout="wide")
 
@@ -88,34 +102,51 @@ def pegar_status(session):
         return f"Erro: {str(e)}", []
 
 def gerar_dashboard_html(agentes):
+    # Mapeamento de status para cores do Bootstrap ou customizadas
     cores = {
         "livre": "success",
         "ocupado": "danger",
-        "em pausa": "warning"  # classe customizada
+        "em pausa": "purple-700",  # classe customizada para roxo
+        "offline": "secondary"     # exemplo de status extra
     }
-    
-    html = """
+
+    # CSS customizado para cores que não existem no Bootstrap
+    css_custom = """
+    <style>
+    .bg-purple-700 { background-color: #6f42c1 !important; color: white !important; }
+    .text-purple-700 { color: #6f42c1 !important; }
+    </style>
+    """
+
+    html = f"""
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    {css_custom}
     <div class="container-fluid">
       <h1 class="text-center mb-4">Monitoramento de Atendimento</h1>
       <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-primary">
-          <tr><th>Agente <i class="bi bi-person-circle"></i></th><th style="width:170px;">Status <i class="bi bi-info-circle"></i></th></tr>
+          <tr><th>Agente <i class="bi bi-person-circle"></i></th>
+              <th style="width:170px;">Status <i class="bi bi-info-circle"></i></th></tr>
         </thead>
         <tbody>
     """
+
     for nome, status in agentes:
         cor = cores.get(status, "secondary")
-        icone = ""
-        if status == "livre": icone = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
-        elif status == "ocupado": icone = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
-        elif status == "em pausa": icone = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
-        
+
+        # Escolhe o ícone e a cor do ícone
+        if status == "livre": icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
+        elif status == "ocupado": icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
+        elif status == "em pausa": icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
+        else: icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
+
         badge = f'<span class="badge bg-{cor} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
         html += f"<tr><td>{nome}</td><td>{icone} {badge}</td></tr>"
 
-    return html + "</tbody></table></div>"
+    html += "</tbody></table></div>"
+    return html
+    
 
 # LOOP PRINCIPAL
 placeholder = st.empty()
