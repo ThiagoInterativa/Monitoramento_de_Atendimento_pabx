@@ -6,12 +6,12 @@ import unicodedata
 
 # ===== CONFIGURAÇÃO =====
 fila_id = 2812
-email = "suporte@interativanet.com.br"
-senha = "smk03657"
+email = "seu_email_aqui"
+senha = "sua_senha_aqui"
 
 # URL de login do PABX
 login_url = "https://pabx.evence.com.br/login"
-monitor_url = f"https://pabx.evence.com.br/callcenter/monitoramentoAgentes?detalhes_agentes=46,47,49,50,53"
+monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
 # Função para remover acentos
 def remover_acentos(txt):
@@ -31,7 +31,7 @@ def login_pabx():
     r = session.get(login_url)
     soup = BeautifulSoup(r.text, "html.parser")
 
-    # Exemplo Pegar token CSRF se existir
+    # Exemplo: pegar token CSRF se existir
     csrf_input = soup.find("input", {"name": "_token"})
     csrf_token = csrf_input["value"] if csrf_input else ""
 
@@ -49,14 +49,6 @@ def login_pabx():
 
 # ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
 def pegar_status(session):
-    response = session.get(monitor_url)
-    if response.status_code != 200:
-        return f"Erro ao acessar {response.status_code}", []
-
-    soup = BeautifulSoup(response.text, "html.parser")
-    tabela = soup.find("table")
-
-    if not tabela:def pegar_status(session):
     response = session.get(monitor_url)
     if response.status_code != 200:
         return f"Erro ao acessar {response.status_code}", []
@@ -95,19 +87,9 @@ def pegar_status(session):
             dados_agentes.append((nome, status))
 
     return None, dados_agentes
-        return "Tabela não encontrada ou sem dados", []
-
-# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
-
-
 
 # ===== FUNÇÃO PARA GERAR DASHBOARD =====
-def gerar_dashboard(session):
-    erro, agentes = pegar_status(session)
-    if erro:
-        st.markdown(f"<h2 style='color:red; text-align:center;'>{erro}</h2>", unsafe_allow_html=True)
-        return
-
+def gerar_dashboard(agentes):
     cores = {
         "livre": "success",
         "ocupado": "danger",
@@ -133,12 +115,14 @@ def gerar_dashboard(session):
 
     for nome, status in agentes:
         cor_bootstrap = cores.get(status, "light")
+
         badge = f"""
         <span class="badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center"
         style="width:120px; height:40px; font-size:16px; border-radius:8px;">
         {status}
         </span>
         """
+
         icone_status = ""
         if status == "livre":
             icone_status = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
@@ -146,6 +130,8 @@ def gerar_dashboard(session):
             icone_status = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
         elif status == "em pausa":
             icone_status = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
+        elif status == "indisponivel":
+            icone_status = '<i class="bi bi-dash-circle-fill text-secondary me-1"></i>'
 
         html += f"""
         <tr>
@@ -162,11 +148,16 @@ def gerar_dashboard(session):
 
     st.markdown(html, unsafe_allow_html=True)
 
+
 # ===== LOOP PRINCIPAL =====
 try:
     session = login_pabx()
     while True:
-        gerar_dashboard(session)
+        erro, agentes = pegar_status(session)
+        if erro:
+            st.error(erro)
+        else:
+            gerar_dashboard(agentes)
         time.sleep(40)
 except Exception as e:
-    st.markdown(f"<h2 style='color:red; text-align:center;'>{str(e)}</h2>", unsafe_allow_html=True)
+    st.error(f"{str(e)}")
