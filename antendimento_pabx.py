@@ -56,11 +56,7 @@ def pegar_status(session):
     soup = BeautifulSoup(response.text, "html.parser")
     tabela = soup.find("table")
 
-    if not tabela:
-        return "Tabela não encontrada ou sem dados", []
-
-# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
-def pegar_status(session):
+    if not tabela:def pegar_status(session):
     response = session.get(monitor_url)
     if response.status_code != 200:
         return f"Erro ao acessar {response.status_code}", []
@@ -79,20 +75,32 @@ def pegar_status(session):
     for linha in linhas:
         colunas = linha.find_all("td")
         if len(colunas) >= 2:
-            # Pega o nome (primeira linha do td, sem data da última chamada)
+            # Pega o nome (removendo "Última chamada" se existir)
             nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
 
-            # ===== CAPTURA O STATUS REAL =====
-            status_text = colunas[1].get_text(strip=True).lower()
+            # Pega o status do <span> dentro do td
+            span_status = colunas[1].find("span")
+            if span_status and span_status.get_text(strip=True):
+                status_text = span_status.get_text(strip=True).lower()
+            else:
+                status_text = "indisponivel"
+
+            # Normaliza acentos
             status = remover_acentos(status_text)
 
-            # Se estiver vazio ou inválido, define como indisponivel
+            # Garante que seja um status válido
             if status not in ["livre", "ocupado", "em pausa"]:
                 status = "indisponivel"
 
             dados_agentes.append((nome, status))
 
     return None, dados_agentes
+        return "Tabela não encontrada ou sem dados", []
+
+# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
+
+
+
 # ===== FUNÇÃO PARA GERAR DASHBOARD =====
 def gerar_dashboard(session):
     erro, agentes = pegar_status(session)
