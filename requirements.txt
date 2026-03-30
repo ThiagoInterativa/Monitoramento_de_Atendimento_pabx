@@ -1,6 +1,4 @@
 requests
-bs4 
 beautifulsoup4
-IPython 
-time
-unicodedata
+bs4
+streamlit
