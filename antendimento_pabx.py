@@ -8,15 +8,13 @@ import unicodedata
 # Configuração da página
 st.set_page_config(layout="wide")
 
-# URL de login e monitoramento (Originais)
+# URL de login e monitoramento (Mantido original)
 login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
-# --- Credenciais (Preencha com seus dados) ---
-fila_id = 2812
-email = "suporte@interativanet.com.br"
-senha = "smk03657"
-
+# --- Credenciais ---
+email = "seu_email"
+senha = "sua_senha"
 
 def remover_acentos(txt):
     return ''.join(
@@ -47,7 +45,8 @@ def pegar_status(session):
         tabela = soup.find("table")
         if not tabela: return "Tabela não encontrada", []
 
-        linhas = tabela.find("tbody").find_all("tr") if tabela.find("tbody") else []
+        tbody = tabela.find("tbody")
+        linhas = tbody.find_all("tr") if tbody else []
         dados_agentes = []
 
         for linha in linhas:
@@ -55,30 +54,33 @@ def pegar_status(session):
             if len(colunas) >= 2:
                 nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
                 
-                # Captura o texto da coluna de status (coluna 2 ou 3 dependendo do PABX)
-                # Tentamos na colunas[2] primeiro, se falhar ou vir vazia, usamos colunas[1]
-                texto_status = ""
-                if len(colunas) >= 3:
-                    texto_status = colunas[2].get_text(" ", strip=True).lower()
+                # Pega o texto da coluna de status (geralmente a 2 ou 3)
+                # Vamos limpar bem o texto para evitar falsos positivos
+                status_raw = colunas[1].get_text(" ", strip=True).lower()
+                if len(colunas) >= 3 and not any(x in status_raw for x in ["livre", "ocupado", "pausa", "toca"]):
+                    status_raw = colunas[2].get_text(" ", strip=True).lower()
                 
-                if not texto_status:
-                    texto_status = colunas[1].get_text(" ", strip=True).lower()
-                
-                td_text = remover_acentos(texto_status)
+                td_text = remover_acentos(status_raw)
 
-                # --- LÓGICA DE FILTRAGEM REFINADA ---
-                if any(x in td_text for x in ["livre", "dispo", "ready", "online"]) and "nao" not in td_text:
-                    status = "livre"
-                elif any(x in td_text for x in ["ocupa", "falan", "busy", "chamad", "toca", "ringing"]):
-                    status = "ocupado"
-                elif any(x in td_text for x in ["pausa", "away", "break", "ausente"]):
+                # --- LÓGICA DE CLASSIFICAÇÃO RIGOROSA ---
+                status = "indisponivel" # Padrão é indisponível (será filtrado)
+
+                # 1. EM PAUSA (Prioridade, pois você disse que está correto)
+                if "pausa" in td_text:
                     status = "em pausa"
-                else:
-                    # Se estiver vazio, deslogado, offline ou indisponível
-                    status = "indisponivel"
+                
+                # 2. OCUPADO (Incluindo "Tocando")
+                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "toca", "ringing"]):
+                    status = "ocupado"
+                
+                # 3. LIVRE (Apenas se contiver explicitamente 'livre' ou 'disponivel')
+                elif any(x in td_text for x in ["livre", "dispo", "ready", "online"]):
+                    # Verificação extra: se o texto estiver vazio ou apenas com números, não é livre
+                    if len(td_text.strip()) > 2:
+                        status = "livre"
 
-                # FUNCIONALIDADE: NÃO MOSTRAR OS INDISPONÍVEIS/DESLOGADOS
-                if status != "indisponivel" and nome != "":
+                # FUNCIONALIDADE: SÓ ADICIONA SE NÃO FOR INDISPONÍVEL
+                if status != "indisponivel" and len(nome) > 1:
                     dados_agentes.append((nome, status))
 
         return None, dados_agentes
@@ -130,4 +132,4 @@ if st.session_state.session_pabx:
                 st.warning("Todos os técnicos estão indisponíveis no momento.")
         time.sleep(40)
 else:
-    st.error("Erro no Login.")
+    st.error("Falha no login.")
