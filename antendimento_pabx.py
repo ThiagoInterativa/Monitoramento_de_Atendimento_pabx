@@ -8,7 +8,7 @@ import unicodedata
 # Configuração da página
 st.set_page_config(layout="wide")
 
-# URL de login e monitoramento (Originais)
+# URL de login e monitoramento (Mantido original)
 login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
@@ -47,29 +47,31 @@ def pegar_status(session):
         tabela = soup.find("table")
         if not tabela: return "Tabela não encontrada", []
 
-        linhas = tabela.find("tbody").find_all("tr") if tabela.find("tbody") else []
+        tbody = tabela.find("tbody")
+        linhas = tbody.find_all("tr") if tbody else tabela.find_all("tr")[1:]
         dados_agentes = []
 
         for linha in linhas:
             colunas = linha.find_all("td")
-            if len(colunas) >= 2:
+            if len(colunas) >= 3: # Mudança para garantir que pegamos a coluna 3 (índice 2)
                 nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
                 
-                # CAPTURA ROBUSTA: Pega texto de dentro de spans ou divs se houver
-                texto_bruto = colunas[1].get_text(" ", strip=True).lower()
-                td_text = remover_acentos(texto_bruto)
+                # CAPTURA ROBUSTA: Pega texto da coluna 3 (índice 2) onde geralmente fica o status
+                # Se o seu PABX usa a coluna 2, mude para colunas[1]
+                celula_status = colunas[2].get_text(" ", strip=True).lower()
+                td_text = remover_acentos(celula_status)
 
-                # Identificação por palavras-chave flexíveis
-                if any(x in td_text for x in ["livre", "disponivel", "dispo", "ready"]):
+                # Identificação flexível (Livre, Disponível, Verde, etc)
+                if any(x in td_text for x in ["livre", "dispo", "ready", "online"]):
                     status = "livre"
-                elif any(x in td_text for x in ["ocupado", "falando", "busy", "chamada"]):
+                elif any(x in td_text for x in ["ocupa", "falan", "busy", "chamad"]):
                     status = "ocupado"
-                elif any(x in td_text for x in ["pausa", "away", "break"]):
+                elif any(x in td_text for x in ["pausa", "away", "break", "ausente"]):
                     status = "em pausa"
                 else:
                     status = "indisponivel"
 
-                # REGRA: NÃO MOSTRAR INDISPONÍVEIS
+                # FUNCIONALIDADE: NÃO MOSTRAR OS INDISPONÍVEIS
                 if status != "indisponivel":
                     dados_agentes.append((nome, status))
 
@@ -78,7 +80,7 @@ def pegar_status(session):
         return f"Erro: {str(e)}", []
 
 def gerar_dashboard_html(agentes):
-    cores = {"livre": "success", "ocupado": "danger", "em pausa": "warning", "indisponivel": "secondary"}
+    cores = {"livre": "success", "ocupado": "danger", "em pausa": "warning"}
     
     html = """
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
