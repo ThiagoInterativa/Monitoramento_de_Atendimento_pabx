@@ -63,30 +63,27 @@ def pegar_status(session):
     dados_agentes = []
 
     for linha in linhas:
-        colunas = linha.find_all("td")
-        if len(colunas) >= 2:
-            # Pega o nome do agente, removendo "Última chamada" se existir
+      if len(colunas) >= 2:
+            # Pega o nome do agente, removendo "Última chamada"
             nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
 
-            # Captura o status real (o texto do span ou outro elemento)
-            span_status = colunas[1].find("span")
-            if span_status and span_status.get_text(strip=True):
-                status_text = span_status.get_text(strip=True).lower()
+            # Captura o status real, procurando palavras-chave
+            td_text = colunas[1].get_text(strip=True).lower()
+            td_text = remover_acentos(td_text)
+
+            if "livre" in td_text:
+                status = "livre"
+            elif "ocupado" in td_text:
+                status = "ocupado"
+            elif "pausa" in td_text:
+                status = "em pausa"
             else:
-                # Se não tiver span, tenta pegar o texto bruto do td
-                status_text = colunas[1].get_text(strip=True).lower()
-
-            # Normaliza acentos
-            status = remover_acentos(status_text)
-
-            # Se status não reconhecido, marca como indisponivel
-            if status not in ["livre", "ocupado", "em pausa"]:
                 status = "indisponivel"
 
             dados_agentes.append((nome, status))
 
     return None, dados_agentes
-
+    
 # ===== FUNÇÃO PARA GERAR DASHBOARD =====
 def gerar_dashboard(agentes):
     cores = {
