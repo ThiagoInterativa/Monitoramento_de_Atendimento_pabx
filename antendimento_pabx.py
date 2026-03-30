@@ -16,6 +16,13 @@ st.markdown("""
     border-radius: 0.25rem;
     font-weight: bold;
 }
+.bg-yellow-500 {
+    background-color: #ffc107 !important;  /* cor amarela */
+    color: white !important;               /* texto branco */
+    padding: 0.25em 0.5em;
+    border-radius: 0.25rem;
+    font-weight: bold;
+}
 </style>
 """, unsafe_allow_html=True)
 
