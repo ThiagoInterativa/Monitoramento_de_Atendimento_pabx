@@ -8,11 +8,11 @@ import unicodedata
 # Configuração da página
 st.set_page_config(layout="wide")
 
-# URL de login e monitoramento (Mantido original)
+# URL de login e monitoramento (Originais)
 login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
-# --- Credenciais ---
+# --- Credenciais (Preencha com seus dados) ---
 fila_id = 2812
 email = "suporte@interativanet.com.br"
 senha = "smk03657"
@@ -47,32 +47,38 @@ def pegar_status(session):
         tabela = soup.find("table")
         if not tabela: return "Tabela não encontrada", []
 
-        tbody = tabela.find("tbody")
-        linhas = tbody.find_all("tr") if tbody else tabela.find_all("tr")[1:]
+        linhas = tabela.find("tbody").find_all("tr") if tabela.find("tbody") else []
         dados_agentes = []
 
         for linha in linhas:
             colunas = linha.find_all("td")
-            if len(colunas) >= 3: # Mudança para garantir que pegamos a coluna 3 (índice 2)
+            if len(colunas) >= 2:
                 nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
                 
-                # CAPTURA ROBUSTA: Pega texto da coluna 3 (índice 2) onde geralmente fica o status
-                # Se o seu PABX usa a coluna 2, mude para colunas[1]
-                celula_status = colunas[2].get_text(" ", strip=True).lower()
-                td_text = remover_acentos(celula_status)
+                # Captura o texto da coluna de status (coluna 2 ou 3 dependendo do PABX)
+                # Tentamos na colunas[2] primeiro, se falhar ou vir vazia, usamos colunas[1]
+                texto_status = ""
+                if len(colunas) >= 3:
+                    texto_status = colunas[2].get_text(" ", strip=True).lower()
+                
+                if not texto_status:
+                    texto_status = colunas[1].get_text(" ", strip=True).lower()
+                
+                td_text = remover_acentos(texto_status)
 
-                # Identificação flexível (Livre, Disponível, Verde, etc)
-                if any(x in td_text for x in ["livre", "dispo", "ready", "online"]):
+                # --- LÓGICA DE FILTRAGEM REFINADA ---
+                if any(x in td_text for x in ["livre", "dispo", "ready", "online"]) and "nao" not in td_text:
                     status = "livre"
-                elif any(x in td_text for x in ["ocupa", "falan", "busy", "chamad"]):
+                elif any(x in td_text for x in ["ocupa", "falan", "busy", "chamad", "toca", "ringing"]):
                     status = "ocupado"
                 elif any(x in td_text for x in ["pausa", "away", "break", "ausente"]):
                     status = "em pausa"
                 else:
+                    # Se estiver vazio, deslogado, offline ou indisponível
                     status = "indisponivel"
 
-                # FUNCIONALIDADE: NÃO MOSTRAR OS INDISPONÍVEIS
-                if status != "indisponivel":
+                # FUNCIONALIDADE: NÃO MOSTRAR OS INDISPONÍVEIS/DESLOGADOS
+                if status != "indisponivel" and nome != "":
                     dados_agentes.append((nome, status))
 
         return None, dados_agentes
