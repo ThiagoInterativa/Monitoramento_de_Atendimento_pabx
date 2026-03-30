@@ -1,7 +1,7 @@
-import requests
-from bs4 import BeautifulSoup
 import streamlit as st
 import time
+import requests
+from bs4 import BeautifulSoup
 import unicodedata
 
 # ===== CONFIGURAÇÃO =====
@@ -84,9 +84,8 @@ def pegar_status(session):
             dados_agentes.append((nome, status))
 
     return None, dados_agentes
-    
-# ===== FUNÇÃO PARA GERAR DASHBOARD =====
-def gerar_dashboard(agentes):
+    # ===== FUNÇÃO PARA GERAR DASHBOARD (Ajustada para retornar a string) =====
+def gerar_dashboard_html(agentes):
     cores = {
         "livre": "success",
         "ocupado": "danger",
@@ -94,6 +93,7 @@ def gerar_dashboard(agentes):
         "indisponivel": "secondary"
     }
 
+    # Iniciamos a string HTML
     html = """
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
@@ -142,29 +142,30 @@ def gerar_dashboard(agentes):
       </table>
     </div>
     """
+    return html
 
-    st.markdown(html, unsafe_allow_html=True)
-
-# ===== LOOP PRINCIPAL AJUSTADO =====
-# Criamos um container vazio que será atualizado
+# ===== LOOP PRINCIPAL COM REFRESH CORRETO =====
+# Criamos um espaço vazio no Streamlit que será sobrescrito a cada 40s
 placeholder = st.empty()
 
 try:
-    session = login_pabx()
-    while True:
-        erro, agentes = pegar_status(session)
-        
-        # Usamos o bloco 'with placeholder.container()' para que 
-        # tudo o que for gerado aqui dentro substitua o conteúdo anterior
-        with placeholder.container():
-            if erro:
-                st.error(erro)
-            else:
-                # Sua função gerar_dashboard já contém o st.markdown(html, unsafe_allow_html=True)
-                gerar_dashboard(agentes)
-        
-        # Aguarda os 40 segundos antes da próxima iteração
-        time.sleep(40)
+    # O login deve ser feito fora do loop para não criar sessões infinitas
+    if 'session_pabx' not in st.session_state:
+        st.session_state.session_pabx = login_pabx()
 
+    while True:
+        erro, agentes = pegar_status(st.session_state.session_pabx)
+        
+        if erro:
+            placeholder.error(erro)
+        else:
+            # Geramos a string completa
+            conteudo_html = gerar_dashboard_html(agentes)
+            # Atualizamos o "buraco" vazio com o HTML completo de uma vez só
+            placeholder.markdown(conteudo_html, unsafe_allow_html=True)
+            
+        time.sleep(40)
+        
 except Exception as e:
-    st.error(f"Erro na execução: {str(e)}")
+    st.error(f"Erro: {str(e)}")
+    
