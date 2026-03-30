@@ -5,14 +5,14 @@ import requests
 from bs4 import BeautifulSoup
 import unicodedata
 
-# Configuração da página (Opcional, mas ajuda no layout)
-st.set_page_config(layout="wide")
+# Configuração da página
+st.set_page_config(layout="wide", page_title="Monitoramento Helpdesk")
 
 # URL de login do PABX
 login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
-# ===== CONFIGURAÇÃO =====
+# --- Insira suas credenciais aqui ou use st.secrets ---
 fila_id = 2812
 email = "suporte@interativanet.com.br"
 senha = "smk03657"
@@ -27,27 +27,27 @@ def remover_acentos(txt):
 # ===== FUNÇÃO PARA LOGIN =====
 def login_pabx():
     session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0"
-    })
+    session.headers.update({"User-Agent": "Mozilla/5.0"})
 
-    r = session.get(login_url)
-    soup = BeautifulSoup(r.text, "html.parser")
+    try:
+        r = session.get(login_url)
+        soup = BeautifulSoup(r.text, "html.parser")
+        csrf_input = soup.find("input", {"name": "_token"})
+        csrf_token = csrf_input["value"] if csrf_input else ""
 
-    csrf_input = soup.find("input", {"name": "_token"})
-    csrf_token = csrf_input["value"] if csrf_input else ""
+        payload = {
+            "login": email,
+            "senha": senha,
+            "_token": csrf_token
+        }
 
-    payload = {
-        "login": email,
-        "senha": senha,
-        "_token": csrf_token
-    }
-
-    response = session.post(login_url, data=payload)
-    if response.url != login_url:
-        return session
-    else:
-        raise Exception("Falha ao fazer login no PABX. Verifique email e senha.")
+        response = session.post(login_url, data=payload)
+        if response.url != login_url:
+            return session
+        else:
+            return None
+    except:
+        return None
 
 # ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
 def pegar_status(session):
@@ -74,6 +74,7 @@ def pegar_status(session):
                 td_text = colunas[1].get_text(strip=True).lower()
                 td_text = remover_acentos(td_text)
 
+                # Define o status baseado no texto da coluna
                 if "livre" in td_text:
                     status = "livre"
                 elif "ocupado" in td_text:
@@ -83,14 +84,17 @@ def pegar_status(session):
                 else:
                     status = "indisponivel"
 
-                dados_agentes.append((nome, status))
+                # REGRA DE NEGÓCIO: Só adiciona se NÃO for indisponível
+                if status != "indisponivel":
+                    dados_agentes.append((nome, status))
 
         return None, dados_agentes
     except Exception as e:
         return f"Erro na requisição: {str(e)}", []
 
-# ===== FUNÇÃO PARA GERAR DASHBOARD (Retorna a string completa) =====
+# ===== FUNÇÃO PARA GERAR DASHBOARD HTML =====
 def gerar_dashboard_html(agentes):
+    # Corrigido: Mapeamento da cor 'livre' e 'em pausa'
     cores = {
         "livre": "success",
         "ocupado": "danger",
@@ -104,15 +108,16 @@ def gerar_dashboard_html(agentes):
     <style>
         body { background-color: white; font-family: sans-serif; }
         .table { margin-top: 20px; }
+        .badge { width: 130px; height: 35px; font-size: 14px; border-radius: 6px; }
     </style>
 
     <div class="container-fluid">
-      <h1 class="text-center mb-4">Monitoramento de Atendimento</h1>
+      <h2 class="text-center my-3">Monitoramento de Atendimento</h2>
       <table class="table table-striped table-hover table-bordered align-middle">
-        <thead class="table-primary">
+        <thead class="table-dark">
           <tr>
             <th>Agente <i class="bi bi-person-circle"></i></th>
-            <th style="width:170px;">Status <i class="bi bi-info-circle"></i></th>
+            <th style="width:200px;">Status <i class="bi bi-info-circle"></i></th>
           </tr>
         </thead>
         <tbody>
@@ -120,61 +125,53 @@ def gerar_dashboard_html(agentes):
 
     for nome, status in agentes:
         cor_bootstrap = cores.get(status, "light")
-        badge = f"""
-        <span class="badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center"
-        style="width:120px; height:40px; font-size:16px; border-radius:8px;">
-        {status}
-        </span>
-        """
-
+        
         icone_status = ""
         if status == "livre":
-            icone_status = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
+            icone_status = '<i class="bi bi-check-circle-fill text-success me-2"></i>'
         elif status == "ocupado":
-            icone_status = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
+            icone_status = '<i class="bi bi-x-circle-fill text-danger me-2"></i>'
         elif status == "em pausa":
-            icone_status = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
-        elif status == "indisponivel":
-            icone_status = '<i class="bi bi-dash-circle-fill text-secondary me-1"></i>'
+            icone_status = '<i class="bi bi-pause-circle-fill text-warning me-2"></i>'
 
         html += f"""
         <tr>
-          <td>{nome}</td>
-          <td>{icone_status} {badge}</td>
+          <td style="font-weight: 500;">{nome}</td>
+          <td>
+            <div class="d-flex align-items-center">
+                {icone_status}
+                <span class="badge bg-{cor_bootstrap} d-inline-flex align-items-center justify-content-center text-capitalize">
+                    {status}
+                </span>
+            </div>
+          </td>
         </tr>
         """
 
-    html += """
-        </tbody>
-      </table>
-    </div>
-    """
+    html += "</tbody></table></div>"
     return html
 
-# ===== LOOP PRINCIPAL =====
+# ===== INTERFACE E LOOP =====
 placeholder = st.empty()
 
-try:
-    if 'session_pabx' not in st.session_state:
-        st.session_state.session_pabx = login_pabx()
+# Inicializa a sessão se não existir
+if 'session_pabx' not in st.session_state or st.session_state.session_pabx is None:
+    st.session_state.session_pabx = login_pabx()
 
+if st.session_state.session_pabx is None:
+    st.error("Não foi possível conectar ao PABX. Verifique as credenciais.")
+else:
     while True:
-        # CORREÇÃO: Removido o ".session_state" duplicado que causava erro
         erro, agentes = pegar_status(st.session_state.session_pabx)
         
         with placeholder.container():
             if erro:
-                st.error(erro)
-                # Tenta logar novamente se a sessão expirar
-                if "401" in erro or "acessar" in erro:
-                    st.session_state.session_pabx = login_pabx()
+                st.error(f"Tentando reconectar... ({erro})")
+                st.session_state.session_pabx = login_pabx()
             elif agentes:
                 html_final = gerar_dashboard_html(agentes)
-                components.html(html_final, height=800, scrolling=True)
+                components.html(html_final, height=600, scrolling=True)
             else:
-                st.warning("Nenhum dado de agente encontrado.")
+                st.info("Todos os técnicos estão indisponíveis no momento.")
         
-        time.sleep(40)
-
-except Exception as e:
-    st.error(f"Erro crítico: {str(e)}")
+        time.sleep(30) # Atualiza a cada 30 segundos
