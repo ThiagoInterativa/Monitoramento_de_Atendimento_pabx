@@ -1,35 +1,37 @@
 import requests
 from bs4 import BeautifulSoup
 import streamlit as st
+import time
 import unicodedata
 
 # ===== CONFIGURAÇÃO =====
 fila_id = 2812
-email = "suporte@interativanet.com.br"
-senha = "smk03657"
+email = "SEU_EMAIL"
+senha = "SUA_SENHA"
 
+# URL de login do PABX
 login_url = "https://pabx.evence.com.br/login"
-monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
+monitor_url = f"https://pabx.evence.com.br/callcenter/monitoramentoAgentes?detalhes_agentes=46,47,49,50,53"
 
-
-# ===== FUNÇÃO PARA REMOVER ACENTOS =====
+# Função para remover acentos
 def remover_acentos(txt):
     return ''.join(
         c for c in unicodedata.normalize('NFD', txt)
         if unicodedata.category(c) != 'Mn'
     )
 
-
-# ===== LOGIN =====
+# ===== FUNÇÃO PARA LOGIN =====
 def login_pabx():
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0"
     })
 
+    # Pega a página de login para pegar tokens escondidos se houver
     r = session.get(login_url)
     soup = BeautifulSoup(r.text, "html.parser")
 
+    # Exemplo Pegar token CSRF se existir
     csrf_input = soup.find("input", {"name": "_token"})
     csrf_token = csrf_input["value"] if csrf_input else ""
 
@@ -40,26 +42,22 @@ def login_pabx():
     }
 
     response = session.post(login_url, data=payload)
-
-    if response.url != login_url:
+    if response.url != login_url:  # se redirecionou, login ok
         return session
     else:
-        raise Exception("Falha ao fazer login no PABX")
+        raise Exception("Falha ao fazer login no PABX. Verifique email e senha.")
 
-
-# ===== PEGAR STATUS =====
-
+# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
 def pegar_status(session):
     response = session.get(monitor_url)
-
     if response.status_code != 200:
-        return f"Erro ao acessar: {response.status_code}", []
+        return f"Erro ao acessar {response.status_code}", []
 
     soup = BeautifulSoup(response.text, "html.parser")
     tabela = soup.find("table")
 
     if not tabela:
-        return "Tabela não encontrada", []
+        return "Tabela não encontrada ou sem dados", []
 
     tbody = tabela.find("tbody")
     linhas = tbody.find_all("tr") if tbody else []
@@ -68,25 +66,34 @@ def pegar_status(session):
 
     for linha in linhas:
         colunas = linha.find_all("td")
-
         if len(colunas) >= 2:
-            # Coluna 1: nome do agente (removendo a última chamada)
-            nome_texto = colunas[0].get_text(separator="|").split("|")[0].strip()
-            
-            # Coluna 2: status real (pode estar dentro de span ou apenas texto)
+            nome = colunas[0].get_text(strip=True).split("\n")[0]
             status_span = colunas[1].find("span")
-            if status_span:
-                status_raw = status_span.text.strip().lower()
-            else:
-                status_raw = colunas[1].text.strip().lower()
 
-            status = remover_acentos(status_raw)
-            dados_agentes.append((nome_texto, status))
+            # ===== CORREÇÃO: pegar status real =====
+            if status_span:
+                classes = status_span.get("class", [])
+                status = "indisponivel"
+                if any("success" in c for c in classes):
+                    status = "livre"
+                elif any("danger" in c for c in classes):
+                    status = "ocupado"
+                elif any("warning" in c for c in classes):
+                    status = "em pausa"
+            else:
+                status = "indisponivel"
+
+            dados_agentes.append((nome, status))
 
     return None, dados_agentes
 
-# ===== DASHBOARD =====
-def gerar_dashboard(agentes):
+# ===== FUNÇÃO PARA GERAR DASHBOARD =====
+def gerar_dashboard(session):
+    erro, agentes = pegar_status(session)
+    if erro:
+        st.markdown(f"<h2 style='color:red; text-align:center;'>{erro}</h2>", unsafe_allow_html=True)
+        return
+
     cores = {
         "livre": "success",
         "ocupado": "danger",
@@ -103,8 +110,8 @@ def gerar_dashboard(agentes):
       <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-primary">
           <tr>
-            <th>Agente</th>
-            <th>Status</th>
+            <th>Agente <i class="bi bi-person-circle"></i></th>
+            <th style="width:170px;">Status <i class="bi bi-info-circle"></i></th>
           </tr>
         </thead>
         <tbody>
@@ -112,17 +119,24 @@ def gerar_dashboard(agentes):
 
     for nome, status in agentes:
         cor_bootstrap = cores.get(status, "light")
-
         badge = f"""
-        <span class="badge bg-{cor_bootstrap}" style="padding:10px; font-size:14px;">
+        <span class="badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center"
+        style="width:120px; height:40px; font-size:16px; border-radius:8px;">
         {status}
         </span>
         """
+        icone_status = ""
+        if status == "livre":
+            icone_status = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
+        elif status == "ocupado":
+            icone_status = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
+        elif status == "em pausa":
+            icone_status = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
 
         html += f"""
         <tr>
           <td>{nome}</td>
-          <td>{badge}</td>
+          <td>{icone_status} {badge}</td>
         </tr>
         """
 
@@ -134,18 +148,11 @@ def gerar_dashboard(agentes):
 
     st.markdown(html, unsafe_allow_html=True)
 
-
-# ===== EXECUÇÃO =====
-st.set_page_config(layout="wide")
-
+# ===== LOOP PRINCIPAL =====
 try:
     session = login_pabx()
-    erro, agentes = pegar_status(session)
-
-    if erro:
-        st.error(erro)
-    else:
-        gerar_dashboard(agentes)
-
+    while True:
+        gerar_dashboard(session)
+        time.sleep(40)
 except Exception as e:
-    st.error(str(e))
+    st.markdown(f"<h2 style='color:red; text-align:center;'>{str(e)}</h2>", unsafe_allow_html=True)
