@@ -14,7 +14,7 @@ login_url = httpspabx.evence.com.brlogin
 monitor_url = fhttpspabx.evence.com.brcallcentermonitoramentoAgentesdetalhesagentes=46,47,49,50,53
 
 # Função para remover acentos
-def remover_acentos(txt)
+def remover_acentos(txt):
     return ''.join(
         c for c in unicodedata.normalize('NFD', txt)
         if unicodedata.category(c) != 'Mn'
