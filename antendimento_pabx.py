@@ -1,7 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from IPython.display import display, HTML, clear_output
-import time
+import streamlit as st
 import unicodedata
 
 # ===== CONFIGURAÇÃO =====
@@ -9,88 +8,79 @@ fila_id = 2812
 email = suporte@interativanet.com.br
 senha = smk03657
 
-# URL de login do PABX
-login_url = httpspabx.evence.com.brlogin
-monitor_url = fhttpspabx.evence.com.brcallcentermonitoramentoAgentesdetalhesagentes=46,47,49,50,53
 
-# Função para remover acentos
+login_url = "https://pabx.evence.com.br/login"
+monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
+
+
+# ===== FUNÇÃO PARA REMOVER ACENTOS =====
 def remover_acentos(txt):
     return ''.join(
         c for c in unicodedata.normalize('NFD', txt)
         if unicodedata.category(c) != 'Mn'
     )
 
-# ===== FUNÇÃO PARA LOGIN =====
+
+# ===== LOGIN =====
 def login_pabx():
     session = requests.Session()
     session.headers.update({
-        User-Agent Mozilla5.0
+        "User-Agent": "Mozilla/5.0"
     })
 
-    # Pega a página de login para pegar tokens escondidos se houver
     r = session.get(login_url)
-    soup = BeautifulSoup(r.text, html.parser)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-    # Exemplo Pegar token CSRF se existir
-    csrf_input = soup.find(input, {name _token})
-    csrf_token = csrf_input[value] if csrf_input else 
+    csrf_input = soup.find("input", {"name": "_token"})
+    csrf_token = csrf_input["value"] if csrf_input else ""
 
     payload = {
-    login email,
-    senha senha,
-    _token csrf_token
-}
+        "login": email,
+        "senha": senha,
+        "_token": csrf_token
+    }
 
     response = session.post(login_url, data=payload)
-    if response.url != login_url  # se redirecionou, login ok
+
+    if response.url != login_url:
         return session
-    else
-        raise Exception(Falha ao fazer login no PABX. Verifique email e senha.)
+    else:
+        raise Exception("Falha ao fazer login no PABX")
 
-# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
-def pegar_status(session)
+
+# ===== PEGAR STATUS =====
+def pegar_status(session):
     response = session.get(monitor_url)
-    if response.status_code != 200
-        return fErro ao acessar {response.status_code}, []
 
-    soup = BeautifulSoup(response.text, html.parser)
-    tabela = soup.find(table)
+    if response.status_code != 200:
+        return f"Erro ao acessar: {response.status_code}", []
 
-    if not tabela
-        return Tabela não encontrada ou sem dados, []
+    soup = BeautifulSoup(response.text, "html.parser")
+    tabela = soup.find("table")
 
-    linhas = tabela.find(tbody).find_all(tr)
+    if not tabela:
+        return "Tabela não encontrada", []
+
+    tbody = tabela.find("tbody")
+    linhas = tbody.find_all("tr") if tbody else []
+
     dados_agentes = []
 
-    for linha in linhas
-        colunas = linha.find_all(td)
-        if len(colunas) = 3
+    for linha in linhas:
+        colunas = linha.find_all("td")
+
+        if len(colunas) == 3:
             nome = colunas[0].text.strip()
             status_raw = colunas[2].text.strip().lower()
             status = remover_acentos(status_raw)
-            if status != indisponivel
+
+            if status != "indisponivel":
                 dados_agentes.append((nome, status))
 
     return None, dados_agentes
 
-# ===== FUNÇÃO PARA GERAR DASHBOARD =====
-def gerar_dashboard(session)
-    erro, agentes = pegar_status(session)
-    if erro
-        clear_output(wait=True)
-        display(HTML(fh2 style='colorred; text-aligncenter;'{erro}h2))
-        return
 
-    cores = {
-        livre success,
-        ocupado danger,
-        em pausa warning,
-        indisponivel secondary
-    }
-
-   import streamlit as st
-import time
-
+# ===== DASHBOARD =====
 def gerar_dashboard(agentes):
     cores = {
         "livre": "success",
@@ -108,8 +98,8 @@ def gerar_dashboard(agentes):
       <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-primary">
           <tr>
-            <th>Agente <i class="bi bi-person-circle"></i></th>
-            <th style="width:170px;">Status <i class="bi bi-info-circle"></i></th>
+            <th>Agente</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -119,24 +109,15 @@ def gerar_dashboard(agentes):
         cor_bootstrap = cores.get(status, "light")
 
         badge = f"""
-        <span class="badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center"
-        style="width:120px; height:40px; font-size:16px; border-radius:8px;">
+        <span class="badge bg-{cor_bootstrap}" style="padding:10px; font-size:14px;">
         {status}
         </span>
         """
 
-        icone_status = ""
-        if status == "livre":
-            icone_status = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
-        elif status == "ocupado":
-            icone_status = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
-        elif status == "em pausa":
-            icone_status = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
-
         html += f"""
         <tr>
           <td>{nome}</td>
-          <td>{icone_status} {badge}</td>
+          <td>{badge}</td>
         </tr>
         """
 
@@ -149,14 +130,17 @@ def gerar_dashboard(agentes):
     st.markdown(html, unsafe_allow_html=True)
 
 
-# ===== EXEMPLO DE USO =====
-agentes_exemplo = [
-    ("João", "livre"),
-    ("Maria", "ocupado"),
-    ("Carlos", "em pausa"),
-    ("Ana", "indisponivel"),
-]
+# ===== EXECUÇÃO =====
+st.set_page_config(layout="wide")
 
-while True:
-    gerar_dashboard(agentes_exemplo)
-    time.sleep(40)
+try:
+    session = login_pabx()
+    erro, agentes = pegar_status(session)
+
+    if erro:
+        st.error(erro)
+    else:
+        gerar_dashboard(agentes)
+
+except Exception as e:
+    st.error(str(e))
