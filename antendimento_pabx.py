@@ -145,15 +145,26 @@ def gerar_dashboard(agentes):
 
     st.markdown(html, unsafe_allow_html=True)
 
-# ===== LOOP PRINCIPAL =====
+# ===== LOOP PRINCIPAL AJUSTADO =====
+# Criamos um container vazio que será atualizado
+placeholder = st.empty()
+
 try:
     session = login_pabx()
     while True:
         erro, agentes = pegar_status(session)
-        if erro:
-            st.error(erro)
-        else:
-            gerar_dashboard(agentes)
+        
+        # Usamos o bloco 'with placeholder.container()' para que 
+        # tudo o que for gerado aqui dentro substitua o conteúdo anterior
+        with placeholder.container():
+            if erro:
+                st.error(erro)
+            else:
+                # Sua função gerar_dashboard já contém o st.markdown(html, unsafe_allow_html=True)
+                gerar_dashboard(agentes)
+        
+        # Aguarda os 40 segundos antes da próxima iteração
         time.sleep(40)
+
 except Exception as e:
-    st.error(f"{str(e)}")
+    st.error(f"Erro na execução: {str(e)}")
