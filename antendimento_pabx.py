@@ -6,8 +6,8 @@ import unicodedata
 
 # ===== CONFIGURAÇÃO =====
 fila_id = 2812
-email = "SEU_EMAIL"
-senha = "SUA_SENHA"
+email = "suporte@interativanet.com.br"
+senha = "smk03657"
 
 # URL de login do PABX
 login_url = "https://pabx.evence.com.br/login"
