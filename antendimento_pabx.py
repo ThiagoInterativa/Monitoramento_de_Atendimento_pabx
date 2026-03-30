@@ -1,15 +1,21 @@
 import streamlit as st
-import streamlit.components.v1 as components # Nova importação necessária
+import streamlit.components.v1 as components
 import time
+import requests
+from bs4 import BeautifulSoup
+import unicodedata
 
-# ===== CONFIGURAÇÃO =====
-fila_id = 2812
-email = "suporte@interativanet.com.br"
-senha = "smk03657"
+# Configuração da página (Opcional, mas ajuda no layout)
+st.set_page_config(layout="wide")
 
 # URL de login do PABX
 login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
+
+# ===== CONFIGURAÇÃO =====
+fila_id = 2812
+email = "suporte@interativanet.com.br"
+senha = "smk03657
 
 # Função para remover acentos
 def remover_acentos(txt):
@@ -45,44 +51,43 @@ def login_pabx():
 
 # ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
 def pegar_status(session):
-    response = session.get(monitor_url)
-    if response.status_code != 200:
-        return f"Erro ao acessar {response.status_code}", []
+    try:
+        response = session.get(monitor_url)
+        if response.status_code != 200:
+            return f"Erro ao acessar {response.status_code}", []
 
-    soup = BeautifulSoup(response.text, "html.parser")
-    tabela = soup.find("table")
+        soup = BeautifulSoup(response.text, "html.parser")
+        tabela = soup.find("table")
 
-    if not tabela:
-        return "Tabela não encontrada ou sem dados", []
+        if not tabela:
+            return "Tabela não encontrada ou sem dados", []
 
-    tbody = tabela.find("tbody")
-    linhas = tbody.find_all("tr") if tbody else []
+        tbody = tabela.find("tbody")
+        linhas = tbody.find_all("tr") if tbody else []
 
-    dados_agentes = []
+        dados_agentes = []
 
-    for linha in linhas:
-        colunas = linha.find_all("td")
-        if len(colunas) >= 2:
-            # Pega o nome do agente, removendo "Última chamada"
-            nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
+        for linha in linhas:
+            colunas = linha.find_all("td")
+            if len(colunas) >= 2:
+                nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
+                td_text = colunas[1].get_text(strip=True).lower()
+                td_text = remover_acentos(td_text)
 
-            # Captura o status real, procurando palavras-chave
-            td_text = colunas[1].get_text(strip=True).lower()
-            td_text = remover_acentos(td_text)
+                if "livre" in td_text:
+                    status = "livre"
+                elif "ocupado" in td_text:
+                    status = "ocupado"
+                elif "pausa" in td_text:
+                    status = "em pausa"
+                else:
+                    status = "indisponivel"
 
-            if "livre" in td_text:
-                status = "livre"
-            elif "ocupado" in td_text:
-                status = "ocupado"
-            elif "pausa" in td_text:
-                status = "em pausa"
-            else:
-                status = "indisponivel"
+                dados_agentes.append((nome, status))
 
-            dados_agentes.append((nome, status))
-
-    return None, dados_agentes
-
+        return None, dados_agentes
+    except Exception as e:
+        return f"Erro na requisição: {str(e)}", []
 
 # ===== FUNÇÃO PARA GERAR DASHBOARD (Retorna a string completa) =====
 def gerar_dashboard_html(agentes):
@@ -93,15 +98,15 @@ def gerar_dashboard_html(agentes):
         "indisponivel": "secondary"
     }
 
-    # Estilo CSS extra para garantir que o fundo fique limpo dentro do iframe
     html = """
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body { background-color: transparent; font-family: sans-serif; }
+        body { background-color: white; font-family: sans-serif; }
+        .table { margin-top: 20px; }
     </style>
 
-    <div class="container my-2">
+    <div class="container-fluid">
       <h1 class="text-center mb-4">Monitoramento de Atendimento</h1>
       <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-primary">
@@ -146,7 +151,7 @@ def gerar_dashboard_html(agentes):
     """
     return html
 
-# ===== LOOP PRINCIPAL COM COMPONENTS =====
+# ===== LOOP PRINCIPAL =====
 placeholder = st.empty()
 
 try:
@@ -154,19 +159,22 @@ try:
         st.session_state.session_pabx = login_pabx()
 
     while True:
-        erro, agentes = pegar_status(st.session_state.session_state.session_pabx)
+        # CORREÇÃO: Removido o ".session_state" duplicado que causava erro
+        erro, agentes = pegar_status(st.session_state.session_pabx)
         
         with placeholder.container():
             if erro:
                 st.error(erro)
-            else:
+                # Tenta logar novamente se a sessão expirar
+                if "401" in erro or "acessar" in erro:
+                    st.session_state.session_pabx = login_pabx()
+            elif agentes:
                 html_final = gerar_dashboard_html(agentes)
-                # Usamos components.html para renderizar o iframe
-                # Ajuste o height (altura) conforme a quantidade de agentes
-                components.html(html_final, height=600, scrolling=True)
+                components.html(html_final, height=800, scrolling=True)
+            else:
+                st.warning("Nenhum dado de agente encontrado.")
         
         time.sleep(40)
 
 except Exception as e:
-    st.error(f"Erro de conexão: {str(e)}")
-    
+    st.error(f"Erro crítico: {str(e)}")
