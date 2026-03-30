@@ -1,6 +1,6 @@
 requests
 bs4 
-BeautifulSoup
+beautifulsoup4
 IPython 
 time
 unicodedata
