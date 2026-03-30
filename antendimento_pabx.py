@@ -104,7 +104,7 @@ def pegar_status(session):
 def gerar_dashboard_html(agentes):
     # Mapeamento de status para cores do Bootstrap ou customizadas
     cores = {
-        "livre": "success",
+        "livre": "$green-400",
         "ocupado": "danger",
         "em pausa": "purple-700",  # classe customizada para roxo
         "offline": "secondary"     # exemplo de status extra
