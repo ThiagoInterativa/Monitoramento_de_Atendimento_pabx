@@ -1,0 +1,7 @@
+requests
+bs4 
+BeautifulSoup
+IPython.display 
+display, HTML, clear_output
+time
+unicodedata

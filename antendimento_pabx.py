@@ -1,0 +1,142 @@
+import requests
+from bs4 import BeautifulSoup
+from IPython.display import display, HTML, clear_output
+import time
+import unicodedata
+
+# ===== CONFIGURAÇÃO =====
+fila_id = 2812
+email = suporte@interativanet.com.br
+senha = smk03657
+
+# URL de login do PABX
+login_url = httpspabx.evence.com.brlogin
+monitor_url = fhttpspabx.evence.com.brcallcentermonitoramentoAgentesdetalhesagentes=46,47,49,50,53
+
+# Função para remover acentos
+def remover_acentos(txt)
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', txt)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+# ===== FUNÇÃO PARA LOGIN =====
+def login_pabx()
+    session = requests.Session()
+    session.headers.update({
+        User-Agent Mozilla5.0
+    })
+
+    # Pega a página de login para pegar tokens escondidos se houver
+    r = session.get(login_url)
+    soup = BeautifulSoup(r.text, html.parser)
+
+    # Exemplo Pegar token CSRF se existir
+    csrf_input = soup.find(input, {name _token})
+    csrf_token = csrf_input[value] if csrf_input else 
+
+    payload = {
+    login email,
+    senha senha,
+    _token csrf_token
+}
+
+    response = session.post(login_url, data=payload)
+    if response.url != login_url  # se redirecionou, login ok
+        return session
+    else
+        raise Exception(Falha ao fazer login no PABX. Verifique email e senha.)
+
+# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
+def pegar_status(session)
+    response = session.get(monitor_url)
+    if response.status_code != 200
+        return fErro ao acessar {response.status_code}, []
+
+    soup = BeautifulSoup(response.text, html.parser)
+    tabela = soup.find(table)
+
+    if not tabela
+        return Tabela não encontrada ou sem dados, []
+
+    linhas = tabela.find(tbody).find_all(tr)
+    dados_agentes = []
+
+    for linha in linhas
+        colunas = linha.find_all(td)
+        if len(colunas) = 3
+            nome = colunas[0].text.strip()
+            status_raw = colunas[2].text.strip().lower()
+            status = remover_acentos(status_raw)
+            if status != indisponivel
+                dados_agentes.append((nome, status))
+
+    return None, dados_agentes
+
+# ===== FUNÇÃO PARA GERAR DASHBOARD =====
+def gerar_dashboard(session)
+    erro, agentes = pegar_status(session)
+    if erro
+        clear_output(wait=True)
+        display(HTML(fh2 style='colorred; text-aligncenter;'{erro}h2))
+        return
+
+    cores = {
+        livre success,
+        ocupado danger,
+        em pausa warning,
+        indisponivel secondary
+    }
+
+    html = 
+    link href=httpscdn.jsdelivr.netnpmbootstrap@5.3.0distcssbootstrap.min.css rel=stylesheet
+    link href=httpscdn.jsdelivr.netnpmbootstrap-icons@1.10.5fontbootstrap-icons.css rel=stylesheet
+
+    div class=container my-4
+      h1 class=text-center mb-4Monitoramento de Atendimentoh1
+      table class=table table-striped table-hover table-bordered align-middle
+         thead class=table-primary
+      tr
+        thAgente i class=bi bi-person-circleith
+        th style=width170px;Status i class=bi bi-info-circleith
+      tr
+    thead
+    tbody
+
+
+    for nome, status in agentes
+        cor_bootstrap = cores.get(status, light)
+        badge = f'''span class=badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center style=width120px; height40px; font-size16px; border-radius8px;{status}span'''
+        icone_status = 
+        if status == livre
+            icone_status = 'i class=bi bi-check-circle-fill text-success me-1i'
+        elif status == ocupado
+            icone_status = 'i class=bi bi-x-circle-fill text-danger me-1i'
+        elif status == em pausa
+            icone_status = 'i class=bi bi-pause-circle-fill text-warning me-1i'
+
+        html += f
+        tr
+          td{nome}td
+          td{icone_status} {badge}td
+        tr
+        
+
+    html += 
+        tbody
+      table
+    div
+    
+
+    clear_output(wait=True)
+    display(HTML(html))
+
+# ===== LOOP PRINCIPAL =====
+try
+    session = login_pabx()
+    while True
+        gerar_dashboard(session)
+        time.sleep(40)
+except Exception as e
+    clear_output(wait=True)
+    display(HTML(fh2 style='colorred; text-aligncenter;'{str(e)}h2))
