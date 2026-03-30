@@ -8,14 +8,13 @@ import unicodedata
 # Configuração da página
 st.set_page_config(layout="wide")
 
-# URL de login do PABX (Mantido original)
+# URL de login e monitoramento (Originais)
 login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
-# --- Insira suas credenciais ---
-fila_id = 2812
-email = "suporte@interativanet.com.br"
-senha = "smk03657"
+# --- Credenciais ---
+email = "seu_email"
+senha = "sua_senha"
 
 def remover_acentos(txt):
     return ''.join(
@@ -29,8 +28,7 @@ def login_pabx():
     try:
         r = session.get(login_url)
         soup = BeautifulSoup(r.text, "html.parser")
-        csrf_input = soup.find("input", {"name": "_token"})
-        csrf_token = csrf_input["value"] if csrf_input else ""
+        csrf_token = soup.find("input", {"name": "_token"})["value"]
         payload = {"login": email, "senha": senha, "_token": csrf_token}
         response = session.post(login_url, data=payload)
         return session if response.url != login_url else None
@@ -41,36 +39,35 @@ def pegar_status(session):
     try:
         response = session.get(monitor_url)
         if response.status_code != 200:
-            return f"Erro ao acessar {response.status_code}", []
+            return f"Erro {response.status_code}", []
 
         soup = BeautifulSoup(response.text, "html.parser")
         tabela = soup.find("table")
-        if not tabela:
-            return "Tabela não encontrada", []
+        if not tabela: return "Tabela não encontrada", []
 
-        tbody = tabela.find("tbody")
-        linhas = tbody.find_all("tr") if tbody else []
+        linhas = tabela.find("tbody").find_all("tr") if tabela.find("tbody") else []
         dados_agentes = []
 
         for linha in linhas:
             colunas = linha.find_all("td")
             if len(colunas) >= 2:
                 nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
-                # MELHORIA: Pega todo o texto da célula, remove espaços extras e limpa
-                td_text = " ".join(colunas[1].get_text().split()).lower()
-                td_text = remover_acentos(td_text)
+                
+                # CAPTURA ROBUSTA: Pega texto de dentro de spans ou divs se houver
+                texto_bruto = colunas[1].get_text(" ", strip=True).lower()
+                td_text = remover_acentos(texto_bruto)
 
-                # NOVA LÓGICA DE CAPTURA (mais abrangente para não falhar)
-                if any(x in td_text for x in ["livre", "disponivel", "dispo"]):
+                # Identificação por palavras-chave flexíveis
+                if any(x in td_text for x in ["livre", "disponivel", "dispo", "ready"]):
                     status = "livre"
-                elif any(x in td_text for x in ["ocupado", "falando", "chamada"]):
+                elif any(x in td_text for x in ["ocupado", "falando", "busy", "chamada"]):
                     status = "ocupado"
-                elif "pausa" in td_text:
+                elif any(x in td_text for x in ["pausa", "away", "break"]):
                     status = "em pausa"
                 else:
                     status = "indisponivel"
 
-                # FUNCIONALIDADE: Não mostra os indisponíveis
+                # REGRA: NÃO MOSTRAR INDISPONÍVEIS
                 if status != "indisponivel":
                     dados_agentes.append((nome, status))
 
@@ -79,48 +76,32 @@ def pegar_status(session):
         return f"Erro: {str(e)}", []
 
 def gerar_dashboard_html(agentes):
-    cores = {
-        "livre": "success",
-        "ocupado": "danger",
-        "em pausa": "warning",
-        "indisponivel": "secondary"
-    }
-
+    cores = {"livre": "success", "ocupado": "danger", "em pausa": "warning", "indisponivel": "secondary"}
+    
     html = """
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        body { background-color: white; font-family: sans-serif; }
-        .table { margin-top: 20px; }
-    </style>
     <div class="container-fluid">
       <h1 class="text-center mb-4">Monitoramento de Atendimento</h1>
       <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-primary">
-          <tr>
-            <th>Agente <i class="bi bi-person-circle"></i></th>
-            <th style="width:170px;">Status <i class="bi bi-info-circle"></i></th>
-          </tr>
+          <tr><th>Agente <i class="bi bi-person-circle"></i></th><th style="width:170px;">Status <i class="bi bi-info-circle"></i></th></tr>
         </thead>
         <tbody>
     """
     for nome, status in agentes:
-        cor_bootstrap = cores.get(status, "secondary")
-        badge = f'<span class="badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
+        cor = cores.get(status, "secondary")
+        icone = ""
+        if status == "livre": icone = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
+        elif status == "ocupado": icone = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
+        elif status == "em pausa": icone = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
         
-        icone_status = ""
-        if status == "livre":
-            icone_status = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
-        elif status == "ocupado":
-            icone_status = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
-        elif status == "em pausa":
-            icone_status = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
+        badge = f'<span class="badge bg-{cor} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
+        html += f"<tr><td>{nome}</td><td>{icone} {badge}</td></tr>"
 
-        html += f"<tr><td>{nome}</td><td>{icone_status} {badge}</td></tr>"
+    return html + "</tbody></table></div>"
 
-    html += "</tbody></table></div>"
-    return html
-
+# LOOP PRINCIPAL
 placeholder = st.empty()
 
 if 'session_pabx' not in st.session_state:
@@ -134,11 +115,9 @@ if st.session_state.session_pabx:
                 st.error(erro)
                 st.session_state.session_pabx = login_pabx()
             elif agentes:
-                html_final = gerar_dashboard_html(agentes)
-                components.html(html_final, height=800, scrolling=True)
+                components.html(gerar_dashboard_html(agentes), height=800, scrolling=True)
             else:
-                # Se cair aqui, é porque todos foram filtrados como 'indisponivel'
                 st.warning("Todos os técnicos estão indisponíveis no momento.")
         time.sleep(40)
 else:
-    st.error("Falha ao realizar login.")
+    st.error("Erro no Login.")
