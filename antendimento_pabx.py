@@ -8,7 +8,7 @@ import unicodedata
 # Configuração da página
 st.set_page_config(layout="wide")
 
-# URL de login do PABX
+# URL de login do PABX (Mantido original)
 login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
@@ -17,15 +17,12 @@ fila_id = 2812
 email = "suporte@interativanet.com.br"
 senha = "smk03657"
 
-
-# Função para remover acentos
 def remover_acentos(txt):
     return ''.join(
         c for c in unicodedata.normalize('NFD', txt)
         if unicodedata.category(c) != 'Mn'
     )
 
-# ===== FUNÇÃO PARA LOGIN =====
 def login_pabx():
     session = requests.Session()
     session.headers.update({"User-Agent": "Mozilla/5.0"})
@@ -40,7 +37,6 @@ def login_pabx():
     except:
         return None
 
-# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
 def pegar_status(session):
     try:
         response = session.get(monitor_url)
@@ -60,20 +56,21 @@ def pegar_status(session):
             colunas = linha.find_all("td")
             if len(colunas) >= 2:
                 nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
-                # MELHORIA NA CAPTURA: removemos espaços extras e normalizamos
+                # MELHORIA: Pega todo o texto da célula, remove espaços extras e limpa
                 td_text = " ".join(colunas[1].get_text().split()).lower()
                 td_text = remover_acentos(td_text)
 
-                if "livre" in td_text or "disponivel" in td_text:
+                # NOVA LÓGICA DE CAPTURA (mais abrangente para não falhar)
+                if any(x in td_text for x in ["livre", "disponivel", "dispo"]):
                     status = "livre"
-                elif "ocupado" in td_text or "falando" in td_text:
+                elif any(x in td_text for x in ["ocupado", "falando", "chamada"]):
                     status = "ocupado"
                 elif "pausa" in td_text:
                     status = "em pausa"
                 else:
                     status = "indisponivel"
 
-                # FUNCIONALIDADE SOLICITADA: Não mostrar indisponíveis
+                # FUNCIONALIDADE: Não mostra os indisponíveis
                 if status != "indisponivel":
                     dados_agentes.append((nome, status))
 
@@ -81,7 +78,6 @@ def pegar_status(session):
     except Exception as e:
         return f"Erro: {str(e)}", []
 
-# ===== FUNÇÃO PARA GERAR DASHBOARD HTML =====
 def gerar_dashboard_html(agentes):
     cores = {
         "livre": "success",
@@ -125,7 +121,6 @@ def gerar_dashboard_html(agentes):
     html += "</tbody></table></div>"
     return html
 
-# ===== LOOP PRINCIPAL =====
 placeholder = st.empty()
 
 if 'session_pabx' not in st.session_state:
@@ -142,7 +137,8 @@ if st.session_state.session_pabx:
                 html_final = gerar_dashboard_html(agentes)
                 components.html(html_final, height=800, scrolling=True)
             else:
+                # Se cair aqui, é porque todos foram filtrados como 'indisponivel'
                 st.warning("Todos os técnicos estão indisponíveis no momento.")
         time.sleep(40)
 else:
-    st.error("Falha no login inicial.")
+    st.error("Falha ao realizar login.")
