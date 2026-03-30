@@ -1,8 +1,6 @@
 import streamlit as st
+import streamlit.components.v1 as components # Nova importação necessária
 import time
-import requests
-from bs4 import BeautifulSoup
-import unicodedata
 
 # ===== CONFIGURAÇÃO =====
 fila_id = 2812
@@ -84,7 +82,9 @@ def pegar_status(session):
             dados_agentes.append((nome, status))
 
     return None, dados_agentes
-    # ===== FUNÇÃO PARA GERAR DASHBOARD (Ajustada para retornar a string) =====
+
+
+# ===== FUNÇÃO PARA GERAR DASHBOARD (Retorna a string completa) =====
 def gerar_dashboard_html(agentes):
     cores = {
         "livre": "success",
@@ -93,12 +93,15 @@ def gerar_dashboard_html(agentes):
         "indisponivel": "secondary"
     }
 
-    # Iniciamos a string HTML
+    # Estilo CSS extra para garantir que o fundo fique limpo dentro do iframe
     html = """
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: transparent; font-family: sans-serif; }
+    </style>
 
-    <div class="container my-4">
+    <div class="container my-2">
       <h1 class="text-center mb-4">Monitoramento de Atendimento</h1>
       <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-primary">
@@ -112,7 +115,6 @@ def gerar_dashboard_html(agentes):
 
     for nome, status in agentes:
         cor_bootstrap = cores.get(status, "light")
-
         badge = f"""
         <span class="badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center"
         style="width:120px; height:40px; font-size:16px; border-radius:8px;">
@@ -144,28 +146,27 @@ def gerar_dashboard_html(agentes):
     """
     return html
 
-# ===== LOOP PRINCIPAL COM REFRESH CORRETO =====
-# Criamos um espaço vazio no Streamlit que será sobrescrito a cada 40s
+# ===== LOOP PRINCIPAL COM COMPONENTS =====
 placeholder = st.empty()
 
 try:
-    # O login deve ser feito fora do loop para não criar sessões infinitas
     if 'session_pabx' not in st.session_state:
         st.session_state.session_pabx = login_pabx()
 
     while True:
-        erro, agentes = pegar_status(st.session_state.session_pabx)
+        erro, agentes = pegar_status(st.session_state.session_state.session_pabx)
         
-        if erro:
-            placeholder.error(erro)
-        else:
-            # Geramos a string completa
-            conteudo_html = gerar_dashboard_html(agentes)
-            # Atualizamos o "buraco" vazio com o HTML completo de uma vez só
-            placeholder.markdown(conteudo_html, unsafe_allow_html=True)
-            
+        with placeholder.container():
+            if erro:
+                st.error(erro)
+            else:
+                html_final = gerar_dashboard_html(agentes)
+                # Usamos components.html para renderizar o iframe
+                # Ajuste o height (altura) conforme a quantidade de agentes
+                components.html(html_final, height=600, scrolling=True)
+        
         time.sleep(40)
-        
+
 except Exception as e:
-    st.error(f"Erro: {str(e)}")
+    st.error(f"Erro de conexão: {str(e)}")
     
