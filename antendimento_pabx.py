@@ -88,55 +88,75 @@ def gerar_dashboard(session)
         indisponivel secondary
     }
 
-    html = 
-    link href=httpscdn.jsdelivr.netnpmbootstrap@5.3.0distcssbootstrap.min.css rel=stylesheet
-    link href=httpscdn.jsdelivr.netnpmbootstrap-icons@1.10.5fontbootstrap-icons.css rel=stylesheet
+   import streamlit as st
+import time
 
-    div class=container my-4
-      h1 class=text-center mb-4Monitoramento de Atendimentoh1
-      table class=table table-striped table-hover table-bordered align-middle
-         thead class=table-primary
-      tr
-        thAgente i class=bi bi-person-circleith
-        th style=width170px;Status i class=bi bi-info-circleith
-      tr
-    thead
-    tbody
+def gerar_dashboard(agentes):
+    cores = {
+        "livre": "success",
+        "ocupado": "danger",
+        "em pausa": "warning",
+        "indisponivel": "secondary"
+    }
+
+    html = """
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <div class="container my-4">
+      <h1 class="text-center mb-4">Monitoramento de Atendimento</h1>
+      <table class="table table-striped table-hover table-bordered align-middle">
+        <thead class="table-primary">
+          <tr>
+            <th>Agente <i class="bi bi-person-circle"></i></th>
+            <th style="width:170px;">Status <i class="bi bi-info-circle"></i></th>
+          </tr>
+        </thead>
+        <tbody>
+    """
+
+    for nome, status in agentes:
+        cor_bootstrap = cores.get(status, "light")
+
+        badge = f"""
+        <span class="badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center"
+        style="width:120px; height:40px; font-size:16px; border-radius:8px;">
+        {status}
+        </span>
+        """
+
+        icone_status = ""
+        if status == "livre":
+            icone_status = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
+        elif status == "ocupado":
+            icone_status = '<i class="bi bi-x-circle-fill text-danger me-1"></i>'
+        elif status == "em pausa":
+            icone_status = '<i class="bi bi-pause-circle-fill text-warning me-1"></i>'
+
+        html += f"""
+        <tr>
+          <td>{nome}</td>
+          <td>{icone_status} {badge}</td>
+        </tr>
+        """
+
+    html += """
+        </tbody>
+      </table>
+    </div>
+    """
+
+    st.markdown(html, unsafe_allow_html=True)
 
 
-    for nome, status in agentes
-        cor_bootstrap = cores.get(status, light)
-        badge = f'''span class=badge bg-{cor_bootstrap} text-capitalize d-inline-flex align-items-center justify-content-center style=width120px; height40px; font-size16px; border-radius8px;{status}span'''
-        icone_status = 
-        if status == livre
-            icone_status = 'i class=bi bi-check-circle-fill text-success me-1i'
-        elif status == ocupado
-            icone_status = 'i class=bi bi-x-circle-fill text-danger me-1i'
-        elif status == em pausa
-            icone_status = 'i class=bi bi-pause-circle-fill text-warning me-1i'
+# ===== EXEMPLO DE USO =====
+agentes_exemplo = [
+    ("João", "livre"),
+    ("Maria", "ocupado"),
+    ("Carlos", "em pausa"),
+    ("Ana", "indisponivel"),
+]
 
-        html += f
-        tr
-          td{nome}td
-          td{icone_status} {badge}td
-        tr
-        
-
-    html += 
-        tbody
-      table
-    div
-    
-
-    clear_output(wait=True)
-    display(HTML(html))
-
-# ===== LOOP PRINCIPAL =====
-try
-    session = login_pabx()
-    while True
-        gerar_dashboard(session)
-        time.sleep(40)
-except Exception as e
-    clear_output(wait=True)
-    display(HTML(fh2 style='colorred; text-aligncenter;'{str(e)}h2))
+while True:
+    gerar_dashboard(agentes_exemplo)
+    time.sleep(40)
