@@ -63,7 +63,8 @@ def pegar_status(session):
     dados_agentes = []
 
     for linha in linhas:
-      if len(colunas) >= 2:
+        colunas = linha.find_all("td")
+        if len(colunas) >= 2:
             # Pega o nome do agente, removendo "Última chamada"
             nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
 
