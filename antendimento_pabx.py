@@ -59,6 +59,18 @@ def pegar_status(session):
     if not tabela:
         return "Tabela não encontrada ou sem dados", []
 
+# ===== FUNÇÃO PARA PEGAR STATUS DOS AGENTES =====
+def pegar_status(session):
+    response = session.get(monitor_url)
+    if response.status_code != 200:
+        return f"Erro ao acessar {response.status_code}", []
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    tabela = soup.find("table")
+
+    if not tabela:
+        return "Tabela não encontrada ou sem dados", []
+
     tbody = tabela.find("tbody")
     linhas = tbody.find_all("tr") if tbody else []
 
@@ -67,26 +79,20 @@ def pegar_status(session):
     for linha in linhas:
         colunas = linha.find_all("td")
         if len(colunas) >= 2:
-            nome = colunas[0].get_text(strip=True).split("\n")[0]
-            status_span = colunas[1].find("span")
+            # Pega o nome (primeira linha do td, sem data da última chamada)
+            nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
 
-            # ===== CORREÇÃO: pegar status real =====
-            if status_span:
-                classes = status_span.get("class", [])
-                status = "indisponivel"
-                if any("success" in c for c in classes):
-                    status = "livre"
-                elif any("danger" in c for c in classes):
-                    status = "ocupado"
-                elif any("warning" in c for c in classes):
-                    status = "em pausa"
-            else:
+            # ===== CAPTURA O STATUS REAL =====
+            status_text = colunas[1].get_text(strip=True).lower()
+            status = remover_acentos(status_text)
+
+            # Se estiver vazio ou inválido, define como indisponivel
+            if status not in ["livre", "ocupado", "em pausa"]:
                 status = "indisponivel"
 
             dados_agentes.append((nome, status))
 
     return None, dados_agentes
-
 # ===== FUNÇÃO PARA GERAR DASHBOARD =====
 def gerar_dashboard(session):
     erro, agentes = pegar_status(session)
