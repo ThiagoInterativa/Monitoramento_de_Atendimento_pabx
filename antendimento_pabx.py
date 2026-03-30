@@ -21,7 +21,7 @@ def remover_acentos(txt):
     )
 
 # ===== FUNÇÃO PARA LOGIN =====
-def login_pabx()
+def login_pabx():
     session = requests.Session()
     session.headers.update({
         User-Agent Mozilla5.0
