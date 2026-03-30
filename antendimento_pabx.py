@@ -56,41 +56,41 @@ def pegar_status(session):
             if len(colunas) >= 2:
                 nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
                 
-                # Pega o texto da coluna de status (geralmente a 2 ou 3)
-                # Vamos limpar bem o texto para evitar falsos positivos
-                status_raw = colunas[1].get_text(" ", strip=True).lower()
-                if len(colunas) >= 3 and not any(x in status_raw for x in ["livre", "ocupado", "pausa", "toca"]):
-                    status_raw = colunas[2].get_text(" ", strip=True).lower()
+                # Captura o texto do status limpando espaços extras
+                status_raw = " ".join(colunas[1].get_text().split()).lower()
+                # Se a coluna 2 estiver vazia, tenta a 3 (índice 2)
+                if len(status_raw) < 2 and len(colunas) >= 3:
+                    status_raw = " ".join(colunas[2].get_text().split()).lower()
                 
                 td_text = remover_acentos(status_raw)
 
-                # --- LÓGICA DE CLASSIFICAÇÃO RIGOROSA ---
-                status = "indisponivel" # Padrão é indisponível (será filtrado)
+                # --- LÓGICA DE FILTRAGEM RESTRITA ---
+                status_final = None 
 
-                # 1. EM PAUSA (Prioridade, pois você disse que está correto)
                 if "pausa" in td_text:
-                    status = "em pausa"
-                
-                # 2. OCUPADO (Incluindo "Tocando")
+                    status_final = "em pausa"
                 elif any(x in td_text for x in ["ocupado", "falando", "chamada", "toca", "ringing"]):
-                    status = "ocupado"
-                
-                # 3. LIVRE (Apenas se contiver explicitamente 'livre' ou 'disponivel')
+                    status_final = "ocupado"
                 elif any(x in td_text for x in ["livre", "dispo", "ready", "online"]):
-                    # Verificação extra: se o texto estiver vazio ou apenas com números, não é livre
-                    if len(td_text.strip()) > 2:
-                        status = "livre"
+                    status_final = "livre"
 
-                # FUNCIONALIDADE: SÓ ADICIONA SE NÃO FOR INDISPONÍVEL
-                if status != "indisponivel" and len(nome) > 1:
-                    dados_agentes.append((nome, status))
+                # FUNCIONALIDADE: SÓ ADICIONA SE FOR UM DOS 3 STATUS ATIVOS
+                # Se for "indisponivel" ou qualquer outra coisa, o status_final será None e não entra na lista
+                if status_final and len(nome) > 1:
+                    dados_agentes.append((nome, status_final))
 
         return None, dados_agentes
     except Exception as e:
         return f"Erro: {str(e)}", []
 
 def gerar_dashboard_html(agentes):
-    cores = {"livre": "success", "ocupado": "danger", "em pausa": "warning"}
+    # Cores exatamente como funcionam no seu Colab
+    cores = {
+        "livre": "success",
+        "ocupado": "danger",
+        "em pausa": "warning",
+        "indisponivel": "secondary"
+    }
     
     html = """
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
