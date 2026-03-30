@@ -54,42 +54,44 @@ def pegar_status(session):
         for linha in linhas:
             colunas = linha.find_all("td")
             if len(colunas) >= 2:
-                nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
+                # Limpeza do nome do agente
+                nome_bruto = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
                 
-                # Captura o texto do status limpando espaços extras
-                status_raw = " ".join(colunas[1].get_text().split()).lower()
-                # Se a coluna 2 estiver vazia, tenta a 3 (índice 2)
-                if len(status_raw) < 2 and len(colunas) >= 3:
-                    status_raw = " ".join(colunas[2].get_text().split()).lower()
+                # Captura o texto do status das colunas possíveis (2 ou 3)
+                # O strip=True é vital aqui para ignorar células que parecem vazias mas têm espaços
+                status_raw_1 = colunas[1].get_text(strip=True).lower()
+                status_raw_2 = colunas[2].get_text(strip=True).lower() if len(colunas) >= 3 else ""
                 
-                td_text = remover_acentos(status_raw)
+                # Unifica os textos encontrados para busca
+                td_text = remover_acentos(status_raw_1 + " " + status_raw_2)
 
-                # --- LÓGICA DE FILTRAGEM RESTRITA ---
+                # --- LÓGICA DE FILTRAGEM ULTRA-RESTRITA ---
                 status_final = None 
 
+                # Só entra no dashboard se houver uma palavra-chave de atividade real
                 if "pausa" in td_text:
                     status_final = "em pausa"
-                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "toca", "ringing"]):
+                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "toca", "ringing", "busy"]):
                     status_final = "ocupado"
-                elif any(x in td_text for x in ["livre", "dispo", "ready", "online"]):
-                    status_final = "livre"
+                elif any(x in td_text for x in ["livre", "disponivel", "dispo", "ready", "online"]):
+                    # SEGUNDA VALIDAÇÃO: Se o texto for "indisponivel", anula o "livre"
+                    if "indisponivel" not in td_text and "offline" not in td_text:
+                        status_final = "livre"
 
-                # FUNCIONALIDADE: SÓ ADICIONA SE FOR UM DOS 3 STATUS ATIVOS
-                # Se for "indisponivel" ou qualquer outra coisa, o status_final será None e não entra na lista
-                if status_final and len(nome) > 1:
-                    dados_agentes.append((nome, status_final))
+                # FUNCIONALIDADE: SÓ ADICIONA SE FOR UM STATUS ATIVO (Livre, Ocupado ou Pausa)
+                # Se status_final for None, Matheus, Ramon e Thiago não aparecerão.
+                if status_final and len(nome_bruto) > 2:
+                    dados_agentes.append((nome_bruto, status_final))
 
         return None, dados_agentes
     except Exception as e:
         return f"Erro: {str(e)}", []
 
 def gerar_dashboard_html(agentes):
-    # Cores exatamente como funcionam no seu Colab
     cores = {
         "livre": "success",
         "ocupado": "danger",
-        "em pausa": "warning",
-        "indisponivel": "secondary"
+        "em pausa": "warning"
     }
     
     html = """
