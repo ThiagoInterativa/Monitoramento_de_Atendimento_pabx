@@ -48,6 +48,7 @@ def login_pabx():
 
 
 # ===== PEGAR STATUS =====
+
 def pegar_status(session):
     response = session.get(monitor_url)
 
@@ -68,16 +69,21 @@ def pegar_status(session):
     for linha in linhas:
         colunas = linha.find_all("td")
 
-        if len(colunas) == 3:
-            nome = colunas[0].text.strip()
-            status_raw = colunas[2].text.strip().lower()
-            status = remover_acentos(status_raw)
+        if len(colunas) >= 2:
+            # Coluna 1: nome do agente (removendo a última chamada)
+            nome_texto = colunas[0].get_text(separator="|").split("|")[0].strip()
+            
+            # Coluna 2: status real (pode estar dentro de span ou apenas texto)
+            status_span = colunas[1].find("span")
+            if status_span:
+                status_raw = status_span.text.strip().lower()
+            else:
+                status_raw = colunas[1].text.strip().lower()
 
-            if status != "indisponivel":
-                dados_agentes.append((nome, status))
+            status = remover_acentos(status_raw)
+            dados_agentes.append((nome_texto, status))
 
     return None, dados_agentes
-
 
 # ===== DASHBOARD =====
 def gerar_dashboard(agentes):
