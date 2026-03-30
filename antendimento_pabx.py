@@ -13,8 +13,10 @@ login_url = "https://pabx.evence.com.br/login"
 monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
 # --- Credenciais ---
-email = "seu_email"
-senha = "sua_senha"
+fila_id = 2812
+email = "suporte@interativanet.com.br"
+senha = "smk03657"
+
 
 def remover_acentos(txt):
     return ''.join(
