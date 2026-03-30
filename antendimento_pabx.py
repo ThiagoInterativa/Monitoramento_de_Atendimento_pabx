@@ -91,7 +91,7 @@ def gerar_dashboard_html(agentes):
     cores = {
         "livre": "success",
         "ocupado": "danger",
-        "em pausa": "purple-700"  # classe customizada
+        "em pausa": "warning"  # classe customizada
     }
     
     html = """
