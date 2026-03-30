@@ -6,8 +6,8 @@ import unicodedata
 
 # ===== CONFIGURAÇÃO =====
 fila_id = 2812
-email = "suporte@interativanet.com.br"
-senha = "smk03657"
+email = "seu_email_aqui"
+senha = "sua_senha_aqui"
 
 # URL de login do PABX
 login_url = "https://pabx.evence.com.br/login"
@@ -27,11 +27,9 @@ def login_pabx():
         "User-Agent": "Mozilla/5.0"
     })
 
-    # Pega a página de login para pegar tokens escondidos se houver
     r = session.get(login_url)
     soup = BeautifulSoup(r.text, "html.parser")
 
-    # Exemplo: pegar token CSRF se existir
     csrf_input = soup.find("input", {"name": "_token"})
     csrf_token = csrf_input["value"] if csrf_input else ""
 
@@ -42,7 +40,7 @@ def login_pabx():
     }
 
     response = session.post(login_url, data=payload)
-    if response.url != login_url:  # se redirecionou, login ok
+    if response.url != login_url:
         return session
     else:
         raise Exception("Falha ao fazer login no PABX. Verifique email e senha.")
@@ -67,20 +65,21 @@ def pegar_status(session):
     for linha in linhas:
         colunas = linha.find_all("td")
         if len(colunas) >= 2:
-            # Pega o nome (removendo "Última chamada" se existir)
+            # Pega o nome do agente, removendo "Última chamada" se existir
             nome = colunas[0].get_text(strip=True).split("Última chamada")[0].strip()
 
-            # Pega o status do <span> dentro do td
+            # Captura o status real (o texto do span ou outro elemento)
             span_status = colunas[1].find("span")
             if span_status and span_status.get_text(strip=True):
                 status_text = span_status.get_text(strip=True).lower()
             else:
-                status_text = "indisponivel"
+                # Se não tiver span, tenta pegar o texto bruto do td
+                status_text = colunas[1].get_text(strip=True).lower()
 
             # Normaliza acentos
             status = remover_acentos(status_text)
 
-            # Garante que seja um status válido
+            # Se status não reconhecido, marca como indisponivel
             if status not in ["livre", "ocupado", "em pausa"]:
                 status = "indisponivel"
 
@@ -147,7 +146,6 @@ def gerar_dashboard(agentes):
     """
 
     st.markdown(html, unsafe_allow_html=True)
-
 
 # ===== LOOP PRINCIPAL =====
 try:
