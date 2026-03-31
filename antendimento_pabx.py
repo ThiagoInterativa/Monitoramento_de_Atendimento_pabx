@@ -100,8 +100,10 @@ def pegar_status(session):
                 # Só entra no dashboard se houver uma palavra-chave de atividade real
                 if "pausa" in td_text:
                     status_final = "em pausa"
-                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "toca", "ringing", "busy"]):
+                elif any(x in td_text for x in ["ocupado", "falando", "toca", "ringing", "busy"]):
                     status_final = "ocupado"
+                     elif any(x in td_text for x in ["tocando", "Tocando", "chamada", "toca", "ringing", "busy"]):
+                    status_final = "tocando"
                 elif any(x in td_text for x in ["livre", "disponivel", "dispo", "ready", "online"]):
                     # SEGUNDA VALIDAÇÃO: Se o texto for "indisponivel", anula o "livre"
                     if "indisponivel" not in td_text and "offline" not in td_text:
@@ -122,7 +124,12 @@ def gerar_dashboard_html(agentes):
         "livre": "success",
         "ocupado": "danger",
         "em pausa": "warning",  # classe customizada 
+        "tocando": "cyan-400"     # exemplo de status extra
+         "Tocando": "cyan-400"     # exemplo de status extra
         "offline": "secondary"     # exemplo de status extra
+           
+
+    
     }
 
     # CSS customizado para cores que não existem no Bootstrap
