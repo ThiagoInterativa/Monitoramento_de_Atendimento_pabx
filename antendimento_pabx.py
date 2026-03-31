@@ -113,7 +113,7 @@ def gerar_dashboard_html(agentes):
     cores = {
         "livre": "success",
         "ocupado": "danger",
-        "em pausa": "yellow-500",  # classe customizada 
+        "em pausa": "Warning",  # classe customizada 
         "offline": "secondary"     # exemplo de status extra
     }
 
