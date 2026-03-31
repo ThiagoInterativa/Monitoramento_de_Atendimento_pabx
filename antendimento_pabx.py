@@ -173,7 +173,7 @@ def gerar_dashboard_html(agentes):
         if status == "livre": icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
         elif status == "ocupado": icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
         elif status == "em pausa": icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
-        elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1"></i>'
+        elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1 blink"></i>'
         else: icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
 
         
