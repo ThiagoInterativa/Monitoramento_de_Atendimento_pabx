@@ -112,7 +112,7 @@ def pegar_status(session):
                 # FUNCIONALIDADE: SÓ ADICIONA SE FOR UM STATUS ATIVO (Livre, Ocupado ou Pausa)
                 # Se status_final for None, Matheus, Ramon e Thiago não aparecerão.
                 if status_final and len(nome_bruto) > 2:
-                  status_final = "ocupado"  # 👈 FORÇAr manualmente o status
+                  #status_final = "tocando"  # 👈 FORÇAr manualmente o status
                   dados_agentes.append((nome_bruto, status_final))
 
         return None, dados_agentes
