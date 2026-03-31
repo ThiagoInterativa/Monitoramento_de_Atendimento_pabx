@@ -174,13 +174,12 @@ def gerar_dashboard_html(agentes):
         elif status == "em pausa": icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
         elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1"></i>'
         else: icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
-
-        
+if status == "tocando":
+        badge = f'<span class="badge bg-{cor} blink text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
+    else:
         badge = f'<span class="badge bg-{cor} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
-        html += f"<tr><td>{nome}</td><td>{icone} {badge}</td></tr>"
 
-    html += "</tbody></table></div>"
-    return html
+    html += f"<tr><td>{nome}</td><td>{icone} {badge}</td></tr>"
     
 
 # LOOP PRINCIPAL
