@@ -100,7 +100,9 @@ def pegar_status(session):
                 # Só entra no dashboard se houver uma palavra-chave de atividade real
                 if "pausa" in td_text:
                     status_final = "em pausa"
-                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "toca", "ringing", "busy"]):
+                elif any(x in td_text for x in ["tocando", "Tocando", "ringing", "chamando"]):
+                    status_final = "tocando"
+                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "tocar", "ringi", "busy"]):
                     status_final = "ocupado"
                 elif any(x in td_text for x in ["livre", "disponivel", "dispo", "ready", "online"]):
                     # SEGUNDA VALIDAÇÃO: Se o texto for "indisponivel", anula o "livre"
