@@ -26,6 +26,10 @@ st.markdown("""
 .bg-gray-500   { background-color: #6b7280 !important; }
 .bg-cyan-400   { background-color: #22d3ee !important; }
 
+/* NOVO: ORANGE */
+.bg-orange-500 { background-color: #fd7e14 !important; color: white !important; }
+.text-orange-500 { color: #fd7e14 !important; }
+
 /* Preto puro */
 .bg-black { 
     background-color: #000000 !important; 
@@ -122,7 +126,7 @@ def gerar_dashboard_html(agentes):
     # Mapeamento de status para cores do Bootstrap ou customizadas
     cores = {
         "livre": "success",
-        "tocando": "primary",   # 👈 NOVO
+        "tocando": "orange-500",   # 👈 NOVO
         "Tocando": "primary",   # 👈 NOVO
         "ocupado": "danger",
         "em pausa": "warning",  # classe customizada 
