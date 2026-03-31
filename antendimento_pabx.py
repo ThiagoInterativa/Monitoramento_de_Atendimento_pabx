@@ -8,20 +8,28 @@ import unicodedata
 # Injeta CSS customizado
 st.markdown("""
 <style>
-/* Badge roxo customizado */
-.bg-purple-700 {
-    background-color: #6f42c1 !important;  /* cor roxa */
-    color: white !important;               /* texto branco */
+/* Badge cores customizadas */
+.badge {
+    color: white !important;
     padding: 0.25em 0.5em;
     border-radius: 0.25rem;
     font-weight: bold;
 }
-.bg-yellow-500 {
-    background-color: #ffc107 !important;  /* cor amarela */
-    color: white !important;               /* texto branco */
-    padding: 0.25em 0.5em;
-    border-radius: 0.25rem;
-    font-weight: bold;
+
+/* Cores estilo Tailwind */
+.bg-purple-700 { background-color: #6f42c1 !important; }
+.bg-yellow-500 { background-color: #eab308 !important; }
+.bg-green-500  { background-color: #22c55e !important; }
+.bg-red-500    { background-color: #ef4444 !important; }
+.bg-indigo-500 { background-color: #6366f1 !important; }
+.bg-blue-500   { background-color: #3b82f6 !important; }
+.bg-gray-500   { background-color: #6b7280 !important; }
+.bg-cyan-400   { background-color: #22d3ee !important; }
+
+/* Preto puro */
+.bg-black { 
+    background-color: #000000 !important; 
+    color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
