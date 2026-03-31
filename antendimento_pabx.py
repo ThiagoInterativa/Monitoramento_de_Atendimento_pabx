@@ -122,6 +122,7 @@ def gerar_dashboard_html(agentes):
     # Mapeamento de status para cores do Bootstrap ou customizadas
     cores = {
         "livre": "success",
+        "tocando": "orange-500",  #  tocando
         "ocupado": "danger",
         "em pausa": "warning",  # classe customizada 
         "offline": "secondary"     # exemplo de status extra
@@ -129,12 +130,27 @@ def gerar_dashboard_html(agentes):
 
     # CSS customizado para cores que não existem no Bootstrap
     css_custom = """
-    <style>
-    .bg-purple-700 { background-color: #6f42c1 !important; color: white !important; }
-    .text-purple-700 { color: #6f42c1 !important; }
-    </style>
-    """
+<style>
+.bg-purple-700 { background-color: #6f42c1 !important; color: white !important; }
+.text-purple-700 { color: #6f42c1 !important; }
 
+/* ORANGE */
+.bg-orange-500 { background-color: #fd7e14 !important; color: white !important; }
+.text-orange-500 { color: #fd7e14 !important; }
+
+/* ANIMAÇÃO PISCANDO */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.blink {
+  animation: blink 1s infinite;
+}
+</style>
+"""
+    
     html = f"""
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
