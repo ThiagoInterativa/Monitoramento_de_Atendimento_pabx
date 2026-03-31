@@ -111,9 +111,8 @@ def pegar_status(session):
 
                 # FUNCIONALIDADE: SÓ ADICIONA SE FOR UM STATUS ATIVO (Livre, Ocupado ou Pausa)
                 # Se status_final for None, Matheus, Ramon e Thiago não aparecerão.
-               if status_final and len(nome_bruto) > 2:
-    status_final = "tocando"  # 👈 FORÇA
-    dados_agentes.append((nome_bruto, status_final))
+                if status_final and len(nome_bruto) > 2:
+                    dados_agentes.append((nome_bruto, status_final))
 
         return None, dados_agentes
     except Exception as e:
@@ -142,7 +141,7 @@ def gerar_dashboard_html(agentes):
 /* ANIMAÇÃO PISCANDO */
 @keyframes blink {
   0% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.3; }
   100% { opacity: 1; }
 }
 
@@ -173,19 +172,13 @@ def gerar_dashboard_html(agentes):
         if status == "livre": icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
         elif status == "ocupado": icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
         elif status == "em pausa": icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
-        elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1 blink"></i>'        
+        elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1"></i>'
         else: icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
 
         
- # Badge (com animação no tocando)
-        if status == "tocando":
-            badge = f'<span class="badge bg-{cor} blink text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
-        else:
-            badge = f'<span class="badge bg-{cor} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
-
+        badge = f'<span class="badge bg-{cor} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
         html += f"<tr><td>{nome}</td><td>{icone} {badge}</td></tr>"
 
-    # ✅ FORA do loop
     html += "</tbody></table></div>"
     return html
     
