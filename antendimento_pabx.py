@@ -170,19 +170,83 @@ def gerar_dashboard_html(agentes):
         cor = cores.get(status, "secondary")
 
         # Escolhe o ícone e a cor do ícone
-        if status == "livre": icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
-        elif status == "ocupado": icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
-        elif status == "em pausa": icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
-        elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1 blink"></i>'
-        else: icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
 
-        
-        badge = f'<span class="badge bg-{cor} blink text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
+def gerar_dashboard_html(agentes):
+    # Mapeamento de status para cores do Bootstrap ou customizadas
+    cores = {
+        "livre": "success",
+        "tocando": "orange-500",  # tocando
+        "ocupado": "danger",
+        "em pausa": "warning",  # classe customizada 
+        "offline": "secondary"     # exemplo de status extra
+    }
+
+    # CSS customizado para cores que não existem no Bootstrap
+    css_custom = """
+<style>
+.bg-purple-700 { background-color: #6f42c1 !important; color: white !important; }
+.text-purple-700 { color: #6f42c1 !important; }
+
+/* ORANGE */
+.bg-orange-500 { background-color: #fd7e14 !important; color: white !important; }
+.text-orange-500 { color: #fd7e14 !important; }
+
+/* ANIMAÇÃO PISCANDO */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.blink {
+  animation: blink 1s infinite;
+}
+</style>
+"""
+
+    html = f"""
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    {css_custom}
+    <div class="container-fluid">
+      <h1 class="text-center mb-4">Monitoramento de Atendimento</h1>
+      <table class="table table-striped table-hover table-bordered align-middle">
+        <thead class="table-primary">
+          <tr><th>Agente <i class="bi bi-person-circle"></i></th>
+              <th style="width:170px;">Status <i class="bi bi-info-circle"></i></th></tr>
+        </thead>
+        <tbody>
+    """
+
+    for nome, status in agentes:
+        cor = cores.get(status, "secondary")
+
+        # Escolhe o ícone e a cor do ícone
+        if status == "livre":
+            icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
+        elif status == "ocupado":
+            icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
+        elif status == "em pausa":
+            icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
+        elif status == "tocando":
+            # Aqui o blink só para tocando
+            icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1 blink"></i>'
+        else:
+            icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
+
+        # Badge (com animação somente no tocando)
+        if status == "tocando":
+            badge = f'<span class="badge bg-{cor} blink text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
+        else:
+            badge = f'<span class="badge bg-{cor} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
+
         html += f"<tr><td>{nome}</td><td>{icone} {badge}</td></tr>"
 
+    # FORA do loop
     html += "</tbody></table></div>"
     return html
     
+
 
 # LOOP PRINCIPAL
 placeholder = st.empty()
