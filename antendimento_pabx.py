@@ -141,7 +141,7 @@ def gerar_dashboard_html(agentes):
 /* ANIMAÇÃO PISCANDO */
 @keyframes blink {
   0% { opacity: 1; }
-  50% { opacity: 0.3; }
+  50% { opacity: 0.6; }
   100% { opacity: 1; }
 }
 
