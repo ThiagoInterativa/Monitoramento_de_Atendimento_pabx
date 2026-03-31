@@ -26,10 +26,6 @@ st.markdown("""
 .bg-gray-500   { background-color: #6b7280 !important; }
 .bg-cyan-400   { background-color: #22d3ee !important; }
 
-/* NOVO: ORANGE */
-.bg-orange-500 { background-color: #fd7e14 !important; color: white !important; }
-.text-orange-500 { color: #fd7e14 !important; }
-
 /* Preto puro */
 .bg-black { 
     background-color: #000000 !important; 
@@ -104,9 +100,7 @@ def pegar_status(session):
                 # Só entra no dashboard se houver uma palavra-chave de atividade real
                 if "pausa" in td_text:
                     status_final = "em pausa"
-                    elif any(x in td_text for x in ["tocando", "Tocando", "toca", "ringing", "chamando"]):
-                    status_final = "tocando"
-                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "busy"]):
+                elif any(x in td_text for x in ["ocupado", "falando", "chamada", "toca", "ringing", "busy"]):
                     status_final = "ocupado"
                 elif any(x in td_text for x in ["livre", "disponivel", "dispo", "ready", "online"]):
                     # SEGUNDA VALIDAÇÃO: Se o texto for "indisponivel", anula o "livre"
@@ -126,8 +120,6 @@ def gerar_dashboard_html(agentes):
     # Mapeamento de status para cores do Bootstrap ou customizadas
     cores = {
         "livre": "success",
-        "tocando": "orange-500",   # 👈 NOVO
-        "Tocando": "primary",   # 👈 NOVO
         "ocupado": "danger",
         "em pausa": "warning",  # classe customizada 
         "offline": "secondary"     # exemplo de status extra
@@ -160,8 +152,6 @@ def gerar_dashboard_html(agentes):
 
         # Escolhe o ícone e a cor do ícone
         if status == "livre": icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
-        elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1"></i>' 
-        elif status == "Tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1"></i>'    
         elif status == "ocupado": icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
         elif status == "em pausa": icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
         else: icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
