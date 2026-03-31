@@ -169,18 +169,33 @@ def gerar_dashboard_html(agentes):
         cor = cores.get(status, "secondary")
 
         # Escolhe o ícone e a cor do ícone
-        if status == "livre": icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
-        elif status == "ocupado": icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
-        elif status == "em pausa": icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
-        elif status == "tocando": icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1"></i>'
-        else: icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
-if status == "tocando":
+    for nome, status in agentes:
+    cor = cores.get(status, "secondary")
+
+    # Escolhe o ícone e a cor do ícone
+    if status == "livre":
+        icone = f'<i class="bi bi-check-circle-fill text-{cor} me-1"></i>'
+    elif status == "ocupado":
+        icone = f'<i class="bi bi-x-circle-fill text-{cor} me-1"></i>'
+    elif status == "em pausa":
+        icone = f'<i class="bi bi-pause-circle-fill text-{cor} me-1"></i>'
+    elif status == "tocando":
+        icone = f'<i class="bi bi-telephone-inbound-fill text-{cor} me-1 blink"></i>'
+    else:
+        icone = f'<i class="bi bi-circle-fill text-{cor} me-1"></i>'
+
+    # Badge (com animação só no tocando)
+    if status == "tocando":
         badge = f'<span class="badge bg-{cor} blink text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
     else:
         badge = f'<span class="badge bg-{cor} text-capitalize d-inline-flex align-items-center justify-content-center" style="width:120px; height:40px; font-size:16px; border-radius:8px;">{status}</span>'
 
     html += f"<tr><td>{nome}</td><td>{icone} {badge}</td></tr>"
-    
+
+# FORA do for
+html += "</tbody></table></div>"
+return html
+
 
 # LOOP PRINCIPAL
 placeholder = st.empty()
