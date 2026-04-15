@@ -39,7 +39,7 @@ st.set_page_config(layout="wide")
 
 # URL de login e monitoramento (Mantido original)
 login_url = "https://pabx.evence.com.br/login"
-monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes"
+monitor_url = "https://pabx.evence.com.br/callcenter/monitoramentoAgentes/detalhes?agentes=46,47,49,50,53"
 
 # --- Credenciais ---
 fila_id = 2812
